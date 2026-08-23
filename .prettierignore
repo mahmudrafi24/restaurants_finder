@@ -1,0 +1,13 @@
+node_modules
+.next
+out
+build
+coverage
+package-lock.json
+*.log
+public/*.svg
+src/components/ui
+
+# `next build` rewrites tsconfig.json (it enforces `jsx` and its own `include` entries) with its
+# own formatting, so formatting it here would fail the check after every build.
+tsconfig.json
