@@ -63,7 +63,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       suppressHydrationWarning
       className={`${fontSans.variable} ${fontMono.variable}`}
     >
-      <body className="antialiased">
+      <body className="antialiased" suppressHydrationWarning>
         <Providers>
           <div className="flex min-h-svh flex-col">
             <SiteHeader />
