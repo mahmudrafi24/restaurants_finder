@@ -1,9 +1,8 @@
 /**
  * Environment configuration, validated once at module load.
  *
- * Importing this module instead of reading `process.env` directly means a missing or malformed
- * variable fails the build with a readable message, rather than surfacing later as a request to
- * `undefined/api/v1/places/search`.
+ * Defaults to this project's public Render backend when no override is configured.
+ * Explicit overrides are validated before API requests are made.
  *
  * Only `NEXT_PUBLIC_*` variables belong here: this module is imported by client components, so
  * anything added must be safe to ship to the browser. Server-only secrets need a separate
@@ -22,7 +21,8 @@ const envSchema = z.object({
 const parsed = envSchema.safeParse({
   // Must be referenced as a static property for Next.js to inline the value at build time —
   // `process.env[key]` is not substituted and would be `undefined` in the browser.
-  NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+  NEXT_PUBLIC_API_URL:
+    process.env.NEXT_PUBLIC_API_URL?.trim() || "https://restaurants-finder-api-0g6o.onrender.com",
 });
 
 if (!parsed.success) {
@@ -32,7 +32,8 @@ if (!parsed.success) {
 
   throw new Error(
     `Invalid environment configuration:\n${problems}\n\n` +
-      "Copy .env.example to .env.local and fill in the values.",
+      "Set NEXT_PUBLIC_API_URL to the backend origin in Vercel Settings > Environment Variables, " +
+      "or in .env.local for local development. Remove an invalid override to use the default Render backend.",
   );
 }
 

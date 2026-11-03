@@ -16,8 +16,11 @@ Import `mahmudrafi24/restaurants_finder` into Vercel. Use these settings:
 | Output directory      | Framework default                                    |
 | `NEXT_PUBLIC_API_URL` | Your actual Render backend origin, without `/api/v1` |
 
-Set the environment variable before building. Changing it requires a redeploy
-because Next.js embeds public environment variables into the browser bundle.
+When the variable is absent or blank, the frontend uses this project's backend:
+`https://restaurants-finder-api-0g6o.onrender.com`. Set `NEXT_PUBLIC_API_URL` only
+to override that origin. Invalid nonempty overrides still fail validation; remove
+or correct them in Vercel. Changing the variable requires a redeploy because Next.js
+embeds public environment variables into the browser bundle.
 
 Once Vercel assigns the frontend domain, set the backend's `CORS_ORIGINS` to that
 exact origin, without a trailing slash. Deploy the backend configuration change
