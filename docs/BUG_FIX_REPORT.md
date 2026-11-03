@@ -43,3 +43,10 @@ A verification-only launcher outside the repository uses webpack, the TypeScript
 Deploy alongside the backend changes for the 4,000,000-byte limit and matching text bounds. CSV export may prefix spreadsheet-sensitive text, including `+` phone values, with an apostrophe to keep it literal in spreadsheet readers. XLSX preserves those text values as strings. Large exports must be narrowed with table filters; no background export service is introduced.
 
 The frontend test coverage is focused unit/regression coverage, not a substitute for browser tests of focus, pointer/touch interactions, accessibility and all supported browsers.
+
+## Follow-up code refactor
+
+The API client was rewritten as a small public facade in `src/lib/api/client.ts`, with dedicated
+modules for transport/timeouts (`transport.ts`), response validation and download headers
+(`response.ts`), and error types (`error.ts`). HTTP error handling is centralized for JSON and
+file downloads. Existing imports remain compatible, and all 16 regression tests still pass.
