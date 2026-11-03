@@ -1,6 +1,6 @@
 "use client";
 
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 
 import { searchCities } from "@/lib/api/cities";
 import { queryKeys } from "@/lib/query-keys";
@@ -24,9 +24,6 @@ export function useCitySuggestions(query: string, options: { enabled?: boolean }
     queryFn: ({ signal }) => searchCities(normalised, { limit: SUGGESTION_LIMIT, signal }),
     enabled: (options.enabled ?? true) && normalised.length >= MIN_CITY_QUERY_LENGTH,
     staleTime: 10 * 60 * 1000,
-    // Without this the list empties on every keystroke that changes the key, making the dropdown
-    // flicker between results and "no matches".
-    placeholderData: keepPreviousData,
     // A failed suggestion lookup is not worth hammering the upstream over; the user is still
     // typing, and the next keystroke issues a fresh request anyway.
     retry: false,

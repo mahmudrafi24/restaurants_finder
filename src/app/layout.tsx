@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 
 import { Providers } from "@/app/providers";
 import { SiteFooter } from "@/components/layout/site-footer";
@@ -7,21 +6,6 @@ import { SiteHeader } from "@/components/layout/site-header";
 import { Toaster } from "@/components/ui/sonner";
 
 import "./globals.css";
-
-// `globals.css` maps Tailwind's `font-sans`/`font-mono` onto these variable names, so the
-// variable a font exposes must match what the stylesheet expects — `--font-sans`, not
-// `--font-geist-sans`, or `html { @apply font-sans }` silently falls back to the system stack.
-const fontSans = Geist({
-  variable: "--font-sans",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const fontMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: {
@@ -52,17 +36,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    // `suppressHydrationWarning` is required by next-themes: it sets the `class` on <html>
-    // before React hydrates, which would otherwise be reported as a mismatch.
-    //
-    // The font variables go on <html>, not <body>: `globals.css` applies `font-sans` to `html`,
-    // and a custom property is only visible to the element that declares it and its descendants.
-    // Declared on <body> the utility resolves to nothing and everything silently renders in Times.
-    <html
-      lang="en"
-      suppressHydrationWarning
-      className={`${fontSans.variable} ${fontMono.variable}`}
-    >
+    <html lang="en" suppressHydrationWarning>
       <body className="antialiased">
         <Providers>
           <div className="flex min-h-svh flex-col">

@@ -28,6 +28,7 @@ export const DEFAULT_RADIUS_KM = 10;
 
 /** Cap the backend enforces on `/places/export`; also keeps the body under Vercel's 4.5 MB. */
 export const MAX_EXPORT_ROWS = 10_000;
+export const MAX_REQUEST_BYTES = 4_000_000;
 
 /** Shortest query the `/cities/search` endpoint accepts. */
 export const MIN_CITY_QUERY_LENGTH = 2;
@@ -64,8 +65,8 @@ export const boundingBoxSchema = z.object({
 });
 
 export const citySchema = z.object({
-  name: z.string(),
-  display_name: z.string(),
+  name: z.string().max(2000),
+  display_name: z.string().max(2000),
   latitude: z.number(),
   longitude: z.number(),
   country: z.string().nullish(),
@@ -86,24 +87,24 @@ export type CitySearchResponse = z.infer<typeof citySearchResponseSchema>;
 // ── Places ───────────────────────────────────────────────────────────────────
 
 export const addressSchema = z.object({
-  house_number: z.string().nullish(),
-  street: z.string().nullish(),
-  suburb: z.string().nullish(),
-  city: z.string().nullish(),
-  postcode: z.string().nullish(),
+  house_number: z.string().max(2000).nullish(),
+  street: z.string().max(2000).nullish(),
+  suburb: z.string().max(2000).nullish(),
+  city: z.string().max(2000).nullish(),
+  postcode: z.string().max(2000).nullish(),
   /** Server-computed single-line form; `null` when OSM carried no address tags. */
   formatted: z.string().nullish(),
 });
 
 export const placeSchema = z.object({
-  osm_id: z.string(),
-  name: z.string(),
+  osm_id: z.string().max(100),
+  name: z.string().max(2000),
   amenity: amenityTypeSchema,
-  cuisine: z.array(z.string()),
+  cuisine: z.array(z.string().max(2000)).max(100),
   address: addressSchema,
-  phone: z.string().nullish(),
-  website: z.string().nullish(),
-  opening_hours: z.string().nullish(),
+  phone: z.string().max(2000).nullish(),
+  website: z.string().max(2000).nullish(),
+  opening_hours: z.string().max(2000).nullish(),
   latitude: z.number(),
   longitude: z.number(),
   /** Server-computed Google Maps link. */

@@ -1,6 +1,7 @@
 "use client";
 
 import { Compass } from "lucide-react";
+import { hashKey } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { NoResults } from "@/components/results/no-results";
@@ -10,6 +11,7 @@ import { ResultsTable } from "@/components/results/results-table";
 import { SearchError } from "@/components/results/search-error";
 import { SearchForm } from "@/components/search/search-form";
 import { usePlaceSearch } from "@/hooks/use-place-search";
+import { queryKeys } from "@/lib/query-keys";
 import type { SearchRequest } from "@/lib/schemas";
 
 function IdleState() {
@@ -40,9 +42,24 @@ export function SearchExperience() {
   const isSearching = isFetching;
   const showSkeleton = submitted !== null && isFetching && data === undefined;
 
+  function handleSearch(request: SearchRequest) {
+    if (isFetching) return;
+    // Updating state with the same query key does not retry a failed query. Compare the
+    // canonical keys so city casing and amenity order behave like the query cache.
+    if (
+      submitted !== null &&
+      isError &&
+      hashKey(queryKeys.places.search(submitted)) === hashKey(queryKeys.places.search(request))
+    ) {
+      void refetch();
+      return;
+    }
+    setSubmitted(request);
+  }
+
   return (
     <div className="space-y-8">
-      <SearchForm onSearch={setSubmitted} isSearching={isSearching} />
+      <SearchForm onSearch={handleSearch} isSearching={isSearching} />
 
       <section id="results" aria-label="Results">
         {submitted === null ? (
@@ -57,7 +74,11 @@ export function SearchExperience() {
             {data.places.length === 0 ? (
               <NoResults cityName={data.city.name} radiusKm={data.radius_km} />
             ) : (
-              <ResultsTable places={data.places} cityName={data.city.name} />
+              <ResultsTable
+                key={JSON.stringify(submitted)}
+                places={data.places}
+                cityName={data.city.name}
+              />
             )}
           </div>
         ) : null}

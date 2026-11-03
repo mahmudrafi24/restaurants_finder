@@ -34,3 +34,12 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Bug fixes and regression tests
+
+See [the bug fix report](docs/BUG_FIX_REPORT.md) for the November audit fixes and verification limits.
+Run `npm test` for the focused regression suite; `npm run verify` also includes these tests.
+The test suite uses the installed TypeScript compiler and Node's built-in test module.
+Builds use system font stacks and no longer fetch fonts from Google.
+Set `NEXT_PUBLIC_API_URL` before building. Export submissions above 4,000,000 UTF-8 bytes must be
+narrowed with result filters; this matches the API's independent byte and row limits.

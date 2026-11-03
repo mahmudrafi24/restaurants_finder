@@ -80,6 +80,20 @@ export function presentError(error: unknown): PresentedError {
         hint: "The frontend and API versions may not match.",
       };
 
+    case "request_too_large":
+      return {
+        ...base,
+        title: "Export is too large",
+        hint: "Filter the results to download fewer rows.",
+        retryable: false,
+      };
+
+    case "rate_limited":
+      return { ...base, title: "Too many requests", hint: "Wait a minute before trying again." };
+
+    case "server_busy":
+      return { ...base, title: "Server busy", hint: "Wait a moment and try again." };
+
     case "export_too_large":
       return {
         ...base,
