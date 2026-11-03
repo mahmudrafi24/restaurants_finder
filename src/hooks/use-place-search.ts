@@ -1,6 +1,6 @@
 "use client";
 
-import { skipToken, useQuery } from "@tanstack/react-query";
+import { skipToken, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { searchPlaces } from "@/lib/api/places";
 import { queryKeys } from "@/lib/query-keys";
@@ -19,11 +19,25 @@ const IDLE_KEY = ["places", "search", "idle"] as const;
  * instead of costing another multi-second Overpass query.
  */
 export function usePlaceSearch(request: SearchRequest | null) {
-  return useQuery({
-    queryKey: request ? queryKeys.places.search(request) : IDLE_KEY,
+  const client = useQueryClient();
+  const key = request ? queryKeys.places.search(request) : IDLE_KEY;
+  const query = useQuery({
+    queryKey: key,
     queryFn: request
       ? ({ signal }: { signal: AbortSignal }) => searchPlaces(request, { signal })
       : skipToken,
     staleTime: 10 * 60 * 1000,
+    // A failed search can already have consumed the API's entire 55-second budget.
+    // Let the user change the radius or retry rather than silently repeating it.
+    retry: false,
+    refetchOnReconnect: false,
   });
+  return {
+    data: query.data,
+    error: query.error,
+    isError: query.isError,
+    isFetching: query.isFetching,
+    refetch: query.refetch,
+    cancel: () => client.cancelQueries({ queryKey: key, exact: true }),
+  };
 }

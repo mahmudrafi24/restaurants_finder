@@ -24,7 +24,7 @@ import { z } from "zod";
 
 export const MIN_RADIUS_KM = 1;
 export const MAX_RADIUS_KM = 25;
-export const DEFAULT_RADIUS_KM = 10;
+export const DEFAULT_RADIUS_KM = 5;
 
 /** Cap the backend enforces on `/places/export`; also keeps the body under Vercel's 4.5 MB. */
 export const MAX_EXPORT_ROWS = 10_000;

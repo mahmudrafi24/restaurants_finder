@@ -8,7 +8,7 @@ import { MAX_RADIUS_KM, MIN_RADIUS_KM } from "@/lib/schemas";
  * Radius above which a dense city starts producing thousands of rows and multi-second waits.
  * Used only to decide whether to show a heads-up, not to restrict the choice.
  */
-const SLOW_RADIUS_KM = 15;
+const SLOW_RADIUS_KM = 10;
 
 interface RadiusSliderProps {
   value: number;
@@ -49,7 +49,7 @@ export function RadiusSlider({ value, onChange, disabled = false }: RadiusSlider
 
       <p className="text-muted-foreground text-xs">
         {value >= SLOW_RADIUS_KM
-          ? "A large radius in a dense city can return several thousand places and take up to a minute."
+          ? "Large areas take longer and may time out. Start with 5 km, then expand if needed."
           : `Covers everything within ${value} km of the city centre.`}
       </p>
     </div>

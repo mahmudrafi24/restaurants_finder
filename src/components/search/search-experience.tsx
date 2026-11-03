@@ -37,7 +37,7 @@ function IdleState() {
  */
 export function SearchExperience() {
   const [submitted, setSubmitted] = useState<SearchRequest | null>(null);
-  const { data, error, isError, isFetching, refetch } = usePlaceSearch(submitted);
+  const { data, error, isError, isFetching, refetch, cancel } = usePlaceSearch(submitted);
 
   const isSearching = isFetching;
   const showSkeleton = submitted !== null && isFetching && data === undefined;
@@ -65,7 +65,12 @@ export function SearchExperience() {
         {submitted === null ? (
           <IdleState />
         ) : showSkeleton ? (
-          <ResultsSkeleton />
+          <ResultsSkeleton
+            onCancel={() => {
+              void cancel();
+              setSubmitted(null);
+            }}
+          />
         ) : isError ? (
           <SearchError error={error} onRetry={() => void refetch()} isRetrying={isFetching} />
         ) : data ? (

@@ -1,5 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -13,10 +16,36 @@ const ROW_COUNT = 8;
  * when the data lands. A dense city takes about ten seconds, which is far too long for a bare
  * spinner.
  */
-export function ResultsSkeleton() {
+export function ResultsSkeleton({ onCancel }: { onCancel?: () => void }) {
+  const [seconds, setSeconds] = useState(0);
+  useEffect(() => {
+    const started = Date.now();
+    const timer = setInterval(() => setSeconds(Math.floor((Date.now() - started) / 1000)), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   return (
-    <div className="space-y-6" aria-busy="true" aria-live="polite">
-      <span className="sr-only">Searching for places…</span>
+    <div className="space-y-6" aria-busy="true">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4">
+        <div>
+          <p className="font-medium" role="status">
+            {seconds >= 30 ? "Still waiting for place data…" : "Searching for places…"}
+          </p>
+          <p className="text-muted-foreground text-sm">
+            {seconds >= 15
+              ? "The data provider is taking longer than usual. You can cancel and try a smaller radius."
+              : "Fetching results from OpenStreetMap. Larger areas can take longer."}
+          </p>
+          <p className="text-muted-foreground text-xs tabular-nums" aria-hidden="true">
+            {seconds}s elapsed
+          </p>
+        </div>
+        {onCancel ? (
+          <Button type="button" variant="outline" onClick={onCancel}>
+            Cancel search
+          </Button>
+        ) : null}
+      </div>
 
       <div className="space-y-4">
         <Skeleton className="h-6 w-56" />

@@ -61,3 +61,16 @@ retain caching, and submissions during an active fetch are ignored.
 
 Four component callback regression cases cover equivalent failed searches, changed requests,
 successful/initial submissions, and active requests.
+
+## Search waiting and cancellation
+
+Searches now default to 5 km. Large-radius guidance starts at 10 km. Expensive search
+queries disable automatic retries and reconnect refetches; users can still retry explicitly.
+The waiting view shows elapsed time, a delayed-provider message, and a Cancel button that
+aborts the query and restores the idle view without clearing the form. Complete results
+and exports remain available as before. The paired backend change caches successful searches
+and bounds each mirror attempt; see its search performance guide for deployment limits.
+
+All 24 regression tests, ESLint and TypeScript passed. Four additional cases cover query
+retry/reconnect policy, signal forwarding, idle queries, and cancellation from the waiting view.
+Browser interaction and the deployed production build remain unverified for this change.

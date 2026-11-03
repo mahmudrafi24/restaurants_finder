@@ -10,6 +10,7 @@ const ts = require("typescript");
 function searchHarness({ submitted = null, isError = false, isFetching = false } = {}) {
   const updates = [];
   let retries = 0;
+  let cancellations = 0;
   const filename = path.resolve(__dirname, "../src/components/search/search-experience.tsx");
   const component = new Module(filename, module);
   component.filename = filename;
@@ -26,6 +27,10 @@ function searchHarness({ submitted = null, isError = false, isFetching = false }
           isFetching,
           refetch: () => {
             retries++;
+            return Promise.resolve();
+          },
+          cancel: () => {
+            cancellations++;
             return Promise.resolve();
           },
         }),
@@ -50,6 +55,8 @@ function searchHarness({ submitted = null, isError = false, isFetching = false }
     submit: tree.props.children[0].props.onSearch,
     updates,
     retries: () => retries,
+    cancel: tree.props.children[1].props.children?.props.onCancel,
+    cancellations: () => cancellations,
   };
 }
 
@@ -84,4 +91,11 @@ test("submission while a search is fetching cannot start another request", () =>
   harness.submit(request);
   assert.deepEqual(harness.updates, []);
   assert.equal(harness.retries(), 0);
+});
+
+test("Cancel stops the active query and restores the idle view", () => {
+  const harness = searchHarness({ submitted: request, isFetching: true });
+  harness.cancel();
+  assert.equal(harness.cancellations(), 1);
+  assert.deepEqual(harness.updates, [null]);
 });
