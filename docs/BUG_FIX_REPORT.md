@@ -50,3 +50,14 @@ The API client was rewritten as a small public facade in `src/lib/api/client.ts`
 modules for transport/timeouts (`transport.ts`), response validation and download headers
 (`response.ts`), and error types (`error.ts`). HTTP error handling is centralized for JSON and
 file downloads. Existing imports remain compatible, and all 16 regression tests still pass.
+
+## Follow-up: retry from the search form
+
+Resubmitting a failed search with the same settings previously only updated React state. Because
+the query key stayed the same, TanStack Query did not start a new request. The form now explicitly
+refetches a failed current query. Comparison uses canonical query keys, including normalized city
+casing and sorted amenities. Changed searches still select their own query, successful results
+retain caching, and submissions during an active fetch are ignored.
+
+Four component callback regression cases cover equivalent failed searches, changed requests,
+successful/initial submissions, and active requests.
