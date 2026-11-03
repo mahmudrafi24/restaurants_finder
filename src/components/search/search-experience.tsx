@@ -57,7 +57,11 @@ export function SearchExperience() {
             {data.places.length === 0 ? (
               <NoResults cityName={data.city.name} radiusKm={data.radius_km} />
             ) : (
-              <ResultsTable places={data.places} cityName={data.city.name} />
+              <ResultsTable
+                key={JSON.stringify(submitted)}
+                places={data.places}
+                cityName={data.city.name}
+              />
             )}
           </div>
         ) : null}

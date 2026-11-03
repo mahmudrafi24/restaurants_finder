@@ -24,7 +24,7 @@ const DEFAULT_TIMEOUT_MS = 30_000;
 /**
  * Ceiling for a place search.
  *
- * The backend caps its own upstream calls at 55s and Vercel terminates the function at 60s, so
+ * The backend enforces a total 55s request deadline before its 60s function limit, so
  * the server produces a proper `504` envelope before this fires. This exists only to bound a
  * connection that has gone silent — a hung socket, not a slow query.
  */
@@ -106,37 +106,46 @@ export async function apiRequest<TSchema extends z.ZodType>({
   signal,
   timeoutMs = DEFAULT_TIMEOUT_MS,
 }: RequestOptions<TSchema>): Promise<z.infer<TSchema>> {
-  const response = await send({ path, method, body, query, signal, timeoutMs });
+  return send({
+    path,
+    method,
+    body,
+    query,
+    signal,
+    timeoutMs,
+    read: async (response) => {
+      if (!response.ok) {
+        throw await toApiError(response);
+      }
 
-  if (!response.ok) {
-    throw await toApiError(response);
-  }
+      let payload: unknown;
+      try {
+        payload = await response.json();
+      } catch (error) {
+        if (!(error instanceof SyntaxError)) throw error;
+        throw new ApiError("The server returned a response that could not be read.", {
+          status: response.status,
+          code: CLIENT_ERROR_CODES.malformedResponse,
+        });
+      }
 
-  let payload: unknown;
-  try {
-    payload = await response.json();
-  } catch {
-    throw new ApiError("The server returned a response that could not be read.", {
-      status: response.status,
-      code: CLIENT_ERROR_CODES.malformedResponse,
-    });
-  }
+      const parsed = schema.safeParse(payload);
+      if (!parsed.success) {
+        // A schema mismatch means the frontend and backend contracts have drifted. Surfacing it as a
+        // distinct code makes that diagnosable instead of looking like a random rendering bug.
+        throw new ApiError(
+          "The server's response did not match the expected format. The API may have changed.",
+          {
+            status: response.status,
+            code: CLIENT_ERROR_CODES.malformedResponse,
+            details: { issues: parsed.error.issues.map((issue) => issue.path.join(".")) },
+          },
+        );
+      }
 
-  const parsed = schema.safeParse(payload);
-  if (!parsed.success) {
-    // A schema mismatch means the frontend and backend contracts have drifted. Surfacing it as a
-    // distinct code makes that diagnosable instead of looking like a random rendering bug.
-    throw new ApiError(
-      "The server's response did not match the expected format. The API may have changed.",
-      {
-        status: response.status,
-        code: CLIENT_ERROR_CODES.malformedResponse,
-        details: { issues: parsed.error.issues.map((issue) => issue.path.join(".")) },
-      },
-    );
-  }
-
-  return parsed.data;
+      return parsed.data;
+    },
+  });
 }
 
 export interface DownloadedFile {
@@ -165,27 +174,35 @@ export async function apiDownload({
   signal?: AbortSignal;
   timeoutMs?: number;
 }): Promise<DownloadedFile> {
-  const response = await send({ path, method: "POST", body, signal, timeoutMs });
+  return send({
+    path,
+    method: "POST",
+    body,
+    signal,
+    timeoutMs,
+    read: async (response) => {
+      if (!response.ok) {
+        throw await toApiError(response);
+      }
 
-  if (!response.ok) {
-    throw await toApiError(response);
-  }
-
-  return {
-    blob: await response.blob(),
-    filename: parseFilename(response.headers.get("Content-Disposition")) ?? fallbackFilename,
-  };
+      return {
+        blob: await response.blob(),
+        filename: parseFilename(response.headers.get("Content-Disposition")) ?? fallbackFilename,
+      };
+    },
+  });
 }
 
 // ── Internals ────────────────────────────────────────────────────────────────
 
-async function send({
+async function send<T>({
   path,
   method,
   body,
   query,
   signal,
   timeoutMs,
+  read,
 }: {
   path: string;
   method: "GET" | "POST";
@@ -193,14 +210,15 @@ async function send({
   query?: Record<string, string | number | undefined>;
   signal?: AbortSignal;
   timeoutMs: number;
-}): Promise<Response> {
+  read: (response: Response) => Promise<T>;
+}): Promise<T> {
   const timeout = AbortSignal.timeout(timeoutMs);
   // Compose so that either the caller cancelling (unmount, superseded query) or the timeout
   // aborts the request. Without this the caller's signal would be ignored.
   const composed = signal ? AbortSignal.any([signal, timeout]) : timeout;
 
   try {
-    return await fetch(resolveUrl(path, query), {
+    const response = await fetch(resolveUrl(path, query), {
       method,
       // `Content-Type` alone keeps the CORS preflight to what the API allow-lists. Adding other
       // headers here requires updating `allow_headers` in the backend's CORS middleware.
@@ -212,6 +230,7 @@ async function send({
       credentials: "omit",
       cache: "no-store",
     });
+    return await read(response);
   } catch (error) {
     // A caller-initiated abort must propagate untouched so TanStack Query treats it as a
     // cancellation rather than a failure worth retrying or reporting.
@@ -223,6 +242,8 @@ async function send({
         code: CLIENT_ERROR_CODES.timeout,
       });
     }
+
+    if (error instanceof ApiError) throw error;
 
     throw new ApiError(
       "Could not reach the server. Check your connection and that the API is running.",
@@ -251,7 +272,8 @@ async function toApiError(response: Response): Promise<ApiError> {
   let payload: unknown;
   try {
     payload = await response.json();
-  } catch {
+  } catch (error) {
+    if (!(error instanceof SyntaxError)) throw error;
     return new ApiError(genericMessageFor(response.status), {
       status: response.status,
       code: `http_${response.status}`,

@@ -5,8 +5,15 @@
  * search, so Overpass is never queried twice for data the browser is holding. That is why the
  * `Place` objects must round-trip unmodified — see the naming note in `lib/schemas.ts`.
  */
-import { apiDownload, apiRequest, SEARCH_TIMEOUT_MS, type DownloadedFile } from "@/lib/api/client";
 import {
+  ApiError,
+  apiDownload,
+  apiRequest,
+  SEARCH_TIMEOUT_MS,
+  type DownloadedFile,
+} from "@/lib/api/client";
+import {
+  MAX_REQUEST_BYTES,
   searchResponseSchema,
   type ExportFormat,
   type Place,
@@ -43,9 +50,16 @@ export async function exportPlaces(
   },
   options: { signal?: AbortSignal } = {},
 ): Promise<DownloadedFile> {
+  const body = { format, city_name: cityName, places };
+  if (new TextEncoder().encode(JSON.stringify(body)).byteLength > MAX_REQUEST_BYTES) {
+    throw new ApiError("This export exceeds 4 MB. Filter the results to download fewer rows.", {
+      status: 413,
+      code: "request_too_large",
+    });
+  }
   return apiDownload({
     path: "/api/v1/places/export",
-    body: { format, city_name: cityName, places },
+    body,
     fallbackFilename: buildFilename(cityName, format),
     signal: options.signal,
     // Rendering ~4,000 rows to XLSX takes a few seconds; the payload itself is a few hundred KB.

@@ -8,6 +8,7 @@ import { Command, CommandEmpty, CommandItem, CommandList } from "@/components/ui
 import { useCitySuggestions } from "@/hooks/use-city-suggestions";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { cn } from "@/lib/utils";
+import { selectableCitySuggestions, shouldSubmitCityOnEnter } from "@/lib/city-suggestions";
 import { MIN_CITY_QUERY_LENGTH, type City } from "@/lib/schemas";
 
 /**
@@ -68,7 +69,7 @@ export function CityCombobox({
   // fresh lookup for a question already answered.
   const shouldQuery = open && selected === null;
   const {
-    data: suggestions = [],
+    data: querySuggestions = [],
     isFetching,
     isError,
   } = useCitySuggestions(debouncedValue, { enabled: shouldQuery });
@@ -78,6 +79,13 @@ export function CityCombobox({
   // matches" at that moment would be wrong.
   const isSettled = debouncedValue.trim() === value.trim() && !isFetching;
 
+  const suggestions = selectableCitySuggestions({
+    value,
+    query: debouncedValue,
+    suggestions: querySuggestions,
+    isFetching,
+    isError,
+  });
   const showList = open && !isTooShort && selected === null;
 
   const emptyMessage = useMemo(() => {
@@ -113,10 +121,18 @@ export function CityCombobox({
               setOpen(false);
               return;
             }
-            // cmdk consumes Enter to select the highlighted item. When the list is closed there
-            // is nothing highlighted, so Enter should submit the form instead.
-            if (event.key === "Enter" && !showList) {
+            // An empty/loading/error list has no item cmdk can select. Submit the typed
+            // name instead, while preserving IME composition and normal item selection.
+            if (
+              shouldSubmitCityOnEnter({
+                key: event.key,
+                isComposing: event.nativeEvent.isComposing || event.keyCode === 229,
+                showList,
+                suggestionCount: suggestions.length,
+              })
+            ) {
               event.preventDefault();
+              event.stopPropagation();
               onSubmitRequested?.();
             }
           }}
